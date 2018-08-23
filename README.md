@@ -15,21 +15,22 @@ PLUGIN KODI
 
 **Fonctions :**
 
+
  - Démarrer / Fermer le médiacenter.
  - Activer le mode mutimédia (askme).
   **Active le mode multimédia* (télécommande vocale)
-	- Navigation complète dans le médiacenter  [ *haut/monte - bas/descend - droite - gauche - retour *].
-	- Navigation rapide dans les menus [* menu principal - menu musique - menu film - menu série - affiche la météo* ] etc...
+	- Navigation complète dans le médiacenter  [ *haut/monte - bas/descend - droite - gauche - retour*].
+	- Navigation rapide dans les menus [*menu principal - menu musique - menu film - menu série - affiche la météo* ] etc...
 	- Commandes [ *play - pause - stop - suivant -précédent* ].
 	- Réglage du volume [ *Règle le volume à x % - active/remets le son/volume - coupe/désactive le son/volume* ].
 	- Lecture de la musique selon [ *artiste - genre - titre* ].
-	- Lecture d'un film selon le titre [ lance/je veux regarder ... le film xxx ].
-	- Lancement de la radio selon votre choix. (voir fichier : /xml/radios.xml).
-	- Exécute la mise à jour des bibliothèques [ update médiathèque musique/vidéo].
+	- Lecture d'un film selon le titre [ *lance/je veux regarder ... le film xxx* ].
+	- Lancement de la radio selon votre choix. (*voir fichier : /xml/radios.xml*).
+	- Exécute la mise à jour des bibliothèques [ *update médiathèque musique/vidéo*].
   **Quitter* [Quitte le mode multimédia] (télécommande vocale)
 
 
 
-##  Version
+**Version :**
 
 Version 1.2 (23-08-2018)
