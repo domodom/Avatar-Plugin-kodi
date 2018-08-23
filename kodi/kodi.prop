@@ -1,0 +1,17 @@
+{
+  "modules": {
+    "kodi": {
+      "description": "Commandes Vocales pour controler votre centre multimédia Kodi",
+      "version": "1.0",
+      "nlpPosition": 2,
+      "ip_kodi": "192.168.0.20",
+      "port_kodi": "8585",
+      "rules": {
+        "start_kodi": [ "(~start|~launch~) the? (kodi|cody)", "(~start|~launch~) the? media center", "(~start|~launch~) the? mediacenter" ],
+        "close_kodi": [ "(~stop~|~cut~|~stopped~|~shutdown~) the? media center", "(~stop~|~cut~|~stopped~|~shutdown~) * (kodi|cody)", "(~stop~|~cut~|~stopped~|~shutdown~) the? mediacenter" ],
+        "mode_mediacenter": [ "(activer|active|~activate~|~enable~|~start~|~launch~) * media mode", "(activer|active|~activate~|~enable~|~start~|~launch~) * multimedia mode" ]
+      }
+     
+    }
+  }
+}
