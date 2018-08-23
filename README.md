@@ -27,9 +27,7 @@ PLUGIN KODI
 	- Lecture d'un film selon le titre [ *lance/je veux regarder ... le film xxx* ].
 	- Lancement de la radio selon votre choix. (*voir fichier : /xml/radios.xml*).
 	- Exécute la mise à jour des bibliothèques [ *update médiathèque musique/vidéo*].
-  **Quitter* [Quitte le mode multimédia] (télécommande vocale)
-
-
+  **Quitter* [Quitte le mode multimédia] (télécommande vocale).
 
 **Version :**
 
