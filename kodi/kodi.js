@@ -560,7 +560,7 @@ var req_radio = function (radio, kodi_api_url, client) {
 
 
 String.prototype.nettoyer = function () {
-    var TERM = ['joues', 'joue', 'jouer', 'lances', 'lance', 'mets', 'met', 'écouter', 'rechercher', 'recherche', 'regarder', 'regardes', 'regarde', 'veux', 'souhaites', 'souhaite', 'lis', 'de', 'du', 'la', 'le', 'les', 'l\'', 'je', 'moi', 'artistes', 'artiste', 'musiques', 'musique', 'films', 'film', 'albums', 'album', 'genres', 'genre', 'singles', 'single', 'radios', 'radio', 'séries', 'série', 'tv', 'playlist'];
+    var TERM = ['joues', 'joue', 'jouer', 'lances', 'lance', 'mets', 'met', 'écouter', 'rechercher', 'recherche', 'regarder', 'regardes', 'regarde', 'veux', 'souhaites', 'souhaite', 'lis', 'de', 'du', 'la', 'le', 'les', 'l\'', 'je', 'moi', 'artistes', 'artiste', 'titres', 'titre', 'musiques', 'musique', 'films', 'film', 'albums', 'album', 'genres', 'genre', 'singles', 'single', 'radios', 'radio', 'séries', 'série', 'tv', 'playlist'];
     var str = this;
     for (var i = 0; i < TERM.length; i++) {
         str = str.replace(TERM[i], "").replace(':', '').trim();
