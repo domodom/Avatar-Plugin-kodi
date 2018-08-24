@@ -113,7 +113,7 @@ var closekodi = { "jsonrpc": "2.0", "method": "Application.Quit", "id": "1" };
 /* START KODI APPLICATION */
 var start_kodi = function (client, config) {
     var done;
-    Avatar.runApp(APP_KODI, 'Salon');
+    Avatar.runApp(config.path_kodi, config.where_is_kodi);
     done = true;
     setTimeout(function () {
         var tts = done ? "Le média-center est maintenant lancé." : "Je n'ai pas lancé le média-center." + client;
@@ -186,6 +186,7 @@ var doPlaylist = function (filter, kodi_api_url, callback, client) {
         if (!json.result.songs) {
             Avatar.speak("Je n'ai pas trouvé de résultats !", client, function () {
                 Avatar.Speech.end(client);
+                mode_control_kodi(kodi_api_url, callback, client, ' ');
             })
             return false;
         }
@@ -199,9 +200,10 @@ var doPlaylist = function (filter, kodi_api_url, callback, client) {
                 doAction(addtolist, kodi_api_url, function (resss) {
                     nbsong = nbsong - 1;
                     if (nbsong == 0)
-                        doAction(runlist, kodi_api_url, function (resss) {
-                            info("Action KODI".yellow, "Démarrage de la playlist");
-                        });
+                        //doAction(runlist, kodi_api_url, function (resss) {
+                        //    info("Action KODI".yellow, "Démarrage de la playlist");
+                        //});
+                        doAction(runlist, kodi_api_url);
                 });
             });
         });
@@ -285,7 +287,6 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                 doAction(params, kodi_api_url, callback);
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
-            
 
             /* DEPLACEMENT DANS LES MENUS -- RIGHT-LEFT-UP-DOWN -- */
 
@@ -324,8 +325,8 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
 
-
             /* COMMANDES (PLAY-PAUSE-STOP-NEXT-PRECEDENT) */
+
             else if ((answer.indexOf("lire") != -1) || (answer.indexOf("lecture") != -1) || (answer.indexOf("play") != -1)) {
                 doAction(Play, kodi_api_url)
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
@@ -367,7 +368,6 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                 doAction(set_Volume, kodi_api_url);
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
-            
 
             /* JOUE LA RADIO */
 
@@ -389,7 +389,7 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                 doPlaylist(filter, kodi_api_url, callback, client);
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
-            
+
             else if (answer.indexOf("titre") != -1) {
                 var title = answer.nettoyer();
                 var filter = { "and": [] };
@@ -411,13 +411,12 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
             else if ((answer.indexOf('albums') != -1) || (answer.indexOf('album') != -1)) {
-                var valalbum = answer.nettoyer().toLowerCase().replace(collationRx, collationFn);
+                var album = answer.nettoyer().toLowerCase();
 
+               
                 doAction(albums, kodi_api_url, callback, client, function (res) {
                     for (var i = 0; i < res.result.albums.length; i++) {
-                        info('Valeur de la variable album ' + album);
-                        info('Label : ' + res.result.albums[i].label + ' id : ' + res.result.albums[i].albumid);
-                        if (res.result.albums[i].label.toLowerCase().replace(collationRx, collationFn) == valalbum) {
+                        if (res.result.albums[i].label.toLowerCase() == album) {
                             var label = res.result.albums[i].label;
                             var albumid = res.result.albums[i].albumid;
                         }
@@ -426,7 +425,6 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                     var readalbum = { "jsonrpc": "2.0", "method": "Player.Open", "params": { "item": { "albumid": albumid }, "options": { "resume": false } }, "id": 1 };
 
                     if (albumid) {
-                       
                         doAction(readalbum, kodi_api_url, callback, client);
                         mode_control_kodi(kodi_api_url, callback, client, ' ');
                     }
@@ -472,7 +470,7 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
             else if ((answer.indexOf('regarder') != -1) || (answer.indexOf('voir') != -1) && (answer.indexOf("film") != -1)) {
                 var fs = require('fs');
 
-                var valfilm = answer.nettoyer();            
+                var valfilm = answer.nettoyer();
 
                 doAction(xml_film, kodi_api_url, callback, client, function (res) {
                     for (var i = 0; i < res.result.movies.length; i++) {
@@ -496,9 +494,8 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                     }
 
                 });
-   
-            }
 
+            }
 
                 /* MISE A JOUR DES LIBRAIRIES */
 
@@ -535,7 +532,6 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
 
 }
 
-
 var req_radio = function (radio, kodi_api_url, client) {
 
     var fs = require('fs');
@@ -558,29 +554,12 @@ var req_radio = function (radio, kodi_api_url, client) {
     });
 }
 
-
 String.prototype.nettoyer = function () {
-    var TERM = ['joues', 'joue', 'jouer', 'lances', 'lance', 'mets', 'met', 'écouter', 'rechercher', 'recherche', 'regarder', 'regardes', 'regarde', 'veux', 'souhaites', 'souhaite', 'lis', 'de', 'du', 'la', 'le', 'les', 'l\'', 'je', 'moi', 'artistes', 'artiste', 'titres', 'titre', 'musiques', 'musique', 'films', 'film', 'albums', 'album', 'genres', 'genre', 'singles', 'single', 'radios', 'radio', 'séries', 'série', 'tv', 'playlist'];
+    var TERM = ['joues', 'joue', 'jouer', 'lances', 'lance', 'mets', 'met', 'écouter', 'rechercher', 'recherche', 'regarder', 'regardes', 'regarde', 'veux', 'souhaites', 'souhaite', 'lis', 'de', 'du', 'la', 'les', 'l\'', 'je', 'moi', 'artistes', 'artiste', 'titres', 'titre', 'musiques', 'musique', 'films', 'film', 'albums', 'album', 'genres', 'genre', 'singles', 'single', 'radios', 'radio', 'séries', 'série', 'tv', 'playlist'];
     var str = this;
     for (var i = 0; i < TERM.length; i++) {
-        str = str.replace(TERM[i], "").replace(':', '').trim();
+        var reg= new RegExp('\\b'+TERM[i]+'\\b\\s?');
+    	str = str.replace(reg, "").replace(':', '').trim();
     }
     return str;
-};
-
-var collationRx =
-    /([áàâäæãå]+)|([éèêë]+)|([íìîï]+)|([óòôöœõø]+)|([úùûü]+)|([ýÿ]+)|([ç]+)|([ñ]+)|([ð]+)|([ß]+)|([þ]+)/g;
-
-var collationFn = function (_, a, e, i, o, u, y, c, n, d, ss, th) {
-    if (a) return "a".repeat(a.length);
-    if (e) return "e".repeat(e.length);
-    if (i) return "i".repeat(i.length);
-    if (o) return "o".repeat(o.length);
-    if (u) return "u".repeat(u.length);
-    if (y) return "y".repeat(y.length);
-    if (c) return "c".repeat(c.length);
-    if (n) return "n".repeat(n.length);
-    if (d) return "d".repeat(d.length);
-    if (ss) return "ss".repeat(ss.length);
-    if (th) return "th".repeat(th.length);
 };
