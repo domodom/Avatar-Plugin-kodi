@@ -34,10 +34,10 @@ PLUGIN KODI
 **Configuration :**
 
 Dans le fichier kodi.prop
-	"path_kodi": "PATH_KODI_WINDOWS", EX : "C:\\Program Files\\Kodi\\kodi.exe"
-        "where_is_kodi" :  "SALON", Nom de la pièce ou est installé kodi
-        "ip_kodi": "192.168.0.20", Adresse ip KODI
-        "port_kodi": "8585" Port utilisé pour le contrôle
+	- "path_kodi": "PATH_KODI_WINDOWS", EX : "C:\\Program Files\\Kodi\\kodi.exe"
+	- "where_is_kodi" :  "SALON", Nom de la pièce ou est installé kodi
+	-  "ip_kodi": "192.168.0.20", Adresse ip KODI
+	- "port_kodi": "8585" Port utilisé pour le contrôle
 
 **Version :**
 
