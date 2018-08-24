@@ -1,34 +1,28 @@
-PLUGIN KODI
-
-- Permet de contrôler le médiacenter "KODI".
-
-------------
-
-
-[![](https://raw.githubusercontent.com/Spikharpax/Avatar-Serveur/master/logo/Avatar.jpg)](https://github.com/Spikharpax "![](https://raw.githubusercontent.com/Spikharpax/Avatar-Serveur/master/logo/Avatar.jpg)")
-
-
-[![](https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Kodi-logo-Thumbnail-light-transparent.png/220px-Kodi-logo-Thumbnail-light-transparent.png)](https://kodi.tv/ "![](https://upload.wikimedia.org/wikipedia/commons/thumb/2/25/Kodi-logo-Thumbnail-light-transparent.png/220px-Kodi-logo-Thumbnail-light-transparent.png)")
-
-------------
-
+![enter image description here](https://raw.githubusercontent.com/Spikharpax/Avatar-Serveur/master/logo/Avatar.jpg)
+![enter image description here](https://camo.githubusercontent.com/aa33c322186b2ea1d60eff45d29c31168c090cb9/68747470733a2f2f75706c6f61642e77696b696d656469612e6f72672f77696b6970656469612f636f6d6d6f6e732f7468756d622f322f32352f4b6f64692d6c6f676f2d5468756d626e61696c2d6c696768742d7472616e73706172656e742e706e672f32323070782d4b6f64692d6c6f676f2d5468756d626e61696c2d6c696768742d7472616e73706172656e742e706e67)
 
 **Fonctions :**
 
+-   Démarrer / Fermer le médiacenter.
+-   Activer le mode mutimédia (askme). *_Active le mode multimédia_ (télécommande vocale)
+    -   Navigation complète dans le médiacenter [ _haut/monte - bas/descend - droite - gauche - retour_].
+    -   Navigation rapide dans les menus [_menu principal - menu musique - menu film - menu série - affiche la météo_ ] etc...
+    -   Commandes [ _play - pause - stop - suivant -précédent_ ].
+    -   Réglage du volume [ _Règle le volume à x % - active/remets le son/volume - coupe/désactive le son/volume_ ].
+    -   Lecture de la musique selon [ _artiste - genre - titre - album_ ].
+    -   Lecture d'un film selon le titre [ _lance/je veux regarder ... le film xxx_ ].
+    -   Lancement de la radio selon votre choix. (_voir fichier : /xml/radios.xml_).
+    -   Exécute la mise à jour des bibliothèques [ _update médiathèque musique/vidéo_].
+    - Quitter [Quitte le mode multimédia] (télécommande vocale).
 
- - Démarrer / Fermer le médiacenter.
- - Activer le mode mutimédia (askme).
-  **Active le mode multimédia* (télécommande vocale)
-	- Navigation complète dans le médiacenter  [ *haut/monte - bas/descend - droite - gauche - retour*].
-	- Navigation rapide dans les menus [*menu principal - menu musique - menu film - menu série - affiche la météo* ] etc...
-	- Commandes [ *play - pause - stop - suivant -précédent* ].
-	- Réglage du volume [ *Règle le volume à x % - active/remets le son/volume - coupe/désactive le son/volume* ].
-	- Lecture de la musique selon [ *artiste - genre - titre* ].
-	- Lecture d'un film selon le titre [ *lance/je veux regarder ... le film xxx* ].
-	- Lancement de la radio selon votre choix. (*voir fichier : /xml/radios.xml*).
-	- Exécute la mise à jour des bibliothèques [ *update médiathèque musique/vidéo*].
-	
-  **Quitter* [Quitte le mode multimédia] (télécommande vocale).
+**Configuration :**
+
+Dans le fichier kodi.prop
+
+- "path_kodi": "PATH_KODI_WINDOWS",  *Ex : "C:\Program    Files\Kodi\kodi.exe"* 
+- "where_is_kodi" : "SALON",  *Nom de la pièce ou est installé kodi* 
+- "ip_kodi": "192.168.0.20", *Adresse ip KODI* 
+- "port_kodi": "8585" *Port utilisé pour le contrôle*
 
 **Version :**
 
