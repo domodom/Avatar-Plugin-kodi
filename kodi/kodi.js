@@ -1,8 +1,10 @@
+import { isNull } from 'util';
+
 /* **********************************************************
  * Plugin kodi pour Avatar.IA
  * Permet de commander vocalement votre Media Center Kodi
  * Eddy TELLIER
- * Version : 1.2
+ * Version : 1.2.2
  * Date Release : 23/08/2018
  ************************************************************
  */
@@ -21,6 +23,23 @@ exports.action = function (data, callback) {
                 Avatar.Speech.end(client);
             });
         },
+
+        kodi_play: function () {
+            doAction(status, kodi_api_url, callback, client, function (res) {
+                if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1))
+                    var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": true }, "id": 1 };
+                    doAction(params, kodi_api_url, callback, client);
+            });
+        },
+
+        kodi_pause: function () {
+            doAction(status, kodi_api_url, callback, client, function (res) {
+                if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1))
+                    var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": false }, "id": 1 };
+                doAction(params, kodi_api_url, callback, client);
+            });
+        },
+
         mode_mediacenter: function () { mode_control_kodi(kodi_api_url, callback, client, "Mode multimédia activé. Que veux tu ?") }
     }
 
@@ -28,8 +47,6 @@ exports.action = function (data, callback) {
     tblCommand[data.action.command]();
     callback();
 }
-
-var APP_KODI = "C:\\Program Files\\Kodi\\kodi.exe";
 
 // -------------------------------------------
 //  QUERIES
@@ -49,13 +66,13 @@ var xml_channel = { "id": 1, "jsonrpc": "2.0", "method": "PVR.GetChannels", "par
 var xml_film = { "jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params": {}, "id": 1 }
 
 // Toggle play / pause in current player
-//var play = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": 0 }, "id": 1 };
+
 var Play = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": 0, "play": true }, "id": 1 };
 var Pause = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": 0, "play": false }, "id": 1 };
 var Stop = { "jsonrpc": "2.0", "method": "Input.ExecuteAction", "params": { "action": "stop" }, "id": 1 }
-var player = { "jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1 }
 var audioPlayer = { "jsonrpc": "2.0", "method": "Player.GetItem", "params": { "properties": ["title", "album", "artist", "duration", "file"], "playerid": 0 }, "id": "AudioGetItem" }
 var videoPlayer = { "jsonrpc": "2.0", "method": "Player.GetItem", "params": { "properties": ["title", "album", "artist", "season", "episode", "duration", "showtitle", "tvshowid", "file"], "playerid": 1 }, "id": "VideoGetItem" }
+var status = { "jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1 }
 
 // Toggle play / pause in current player video
 var playvideo = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": 1 }, "id": 1 };
@@ -178,11 +195,8 @@ var doAction = function (req, kodi_api_url, callback, client, hook) {
 }
 
 var doPlaylist = function (filter, kodi_api_url, callback, client) {
-    // Apply filter
     songs.params['filter'] = filter;
-    // Search songs
     doAction(songs, kodi_api_url, callback, client, function (json) {
-        // No results
         if (!json.result.songs) {
             Avatar.speak("Je n'ai pas trouvé de résultats !", client, function () {
                 Avatar.Speech.end(client);
@@ -191,18 +205,13 @@ var doPlaylist = function (filter, kodi_api_url, callback, client) {
             return false;
         }
         nbsong = json.result.songs.length;
-        // info (nbsong + ' chansons obtenues');
 
-        // Clear playlist
         doAction(clearlist, kodi_api_url, function (resss) {
             json.result.songs.forEach(function (song) {
                 addtolist.params.item.songid = song.songid;
                 doAction(addtolist, kodi_api_url, function (resss) {
                     nbsong = nbsong - 1;
                     if (nbsong == 0)
-                        //doAction(runlist, kodi_api_url, function (resss) {
-                        //    info("Action KODI".yellow, "Démarrage de la playlist");
-                        //});
                         doAction(runlist, kodi_api_url);
                 });
             });
@@ -344,8 +353,8 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
                 mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
             else if ((answer.indexOf("précédent") != -1) || (answer.indexOf("précédente") != -1)) {
-                    doAction(Prev, kodi_api_url);
-                    mode_control_kodi(kodi_api_url, callback, client, ' ');
+                doAction(Prev, kodi_api_url);
+                mode_control_kodi(kodi_api_url, callback, client, ' ');
             }
 
             /* REGLAGE DU SON */
@@ -413,7 +422,7 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
             else if ((answer.indexOf('albums') != -1) || (answer.indexOf('album') != -1)) {
                 var album = answer.nettoyer().toLowerCase();
 
-               
+
                 doAction(albums, kodi_api_url, callback, client, function (res) {
                     for (var i = 0; i < res.result.albums.length; i++) {
                         if (res.result.albums[i].label.toLowerCase() == album) {
@@ -497,7 +506,7 @@ var mode_control_kodi = function (kodi_api_url, callback, client, tts) {
 
             }
 
-                /* MISE A JOUR DES LIBRAIRIES */
+            /* MISE A JOUR DES LIBRAIRIES */
 
             else if ((answer.indexOf("update") != -1) || (answer.indexOf("médiathèque musique") != -1)) {
                 doAction(AudioLibraryScan, kodi_api_url, callback, function () {
@@ -558,8 +567,8 @@ String.prototype.nettoyer = function () {
     var TERM = ['joues', 'joue', 'jouer', 'lances', 'lance', 'mets', 'met', 'écouter', 'rechercher', 'recherche', 'regarder', 'regardes', 'regarde', 'veux', 'souhaites', 'souhaite', 'lis', 'de', 'du', 'la', 'les', 'l\'', 'je', 'moi', 'artistes', 'artiste', 'titres', 'titre', 'musiques', 'musique', 'films', 'film', 'albums', 'album', 'genres', 'genre', 'singles', 'single', 'radios', 'radio', 'séries', 'série', 'tv', 'playlist'];
     var str = this;
     for (var i = 0; i < TERM.length; i++) {
-        var reg= new RegExp('\\b'+TERM[i]+'\\b\\s?');
-    	str = str.replace(reg, "").replace(':', '').trim();
+        var reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
+        str = str.replace(reg, "").replace(':', '').trim();
     }
     return str;
 };

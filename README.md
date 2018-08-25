@@ -23,7 +23,14 @@ Dans le fichier kodi.prop
 - "where_is_kodi" : "SALON",  *Nom de la pièce ou est installé kodi* 
 - "ip_kodi": "192.168.0.20", *Adresse ip KODI* 
 - "port_kodi": "8585" *Port utilisé pour le contrôle*
-
+- "speech": {
+        "no_mute": [ "Android", "Chambre" ]
+		
+		
 **Version :**
 
 Version 1.2 (23-08-2018)
+Version 1.2.2 (25-08-2018)
+
+[x] Ajout de la fonction play/pause lors de l'activation de l'écoute
+[x] Correction lors de la recherche audio par artiste / albums
