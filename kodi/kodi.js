@@ -14,30 +14,38 @@ exports.action = function (data, callback) {
     var config = Config.modules.kodi;
     var kodi_api_url = 'http://' + config.ip_kodi + ':' + config.port_kodi + '/jsonrpc';
     var client = data.client;
+    var kodi_status = { "status": false };
 
     var tblCommand = {
-        start_kodi: function () { start_kodi(client, config); },
+        start_kodi: function () { start_kodi(client, config, kodi_status); kodi_status.status = 'true'; },
         close_kodi: function () {
             doAction(closekodi, kodi_api_url, callback, client);
+            kodi_status.status = 'false';
             Avatar.speak("Le média-center est arrêté...", client, function () {
                 Avatar.Speech.end(client);
             });
         },
 
         kodi_play: function () {
-            doAction(status, kodi_api_url, callback, client, function (res) {
-                if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1))
-                    var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": true }, "id": 1 };
-                    doAction(params, kodi_api_url, callback, client);
-            });
+            if (kodi_status.status == 'true') {
+                    doAction(status, kodi_api_url, callback, client, function (res) {
+                    if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1)) {
+                        var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": true }, "id": 1 };
+                        doAction(params, kodi_api_url, callback, client);
+                    }
+                });
+            }
         },
 
         kodi_pause: function () {
-            doAction(status, kodi_api_url, callback, client, function (res) {
-                if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1))
-                    var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": false }, "id": 1 };
-                doAction(params, kodi_api_url, callback, client);
-            });
+            if (kodi_status.status == 'true') {
+                doAction(status, kodi_api_url, callback, client, function (res) {
+                    if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1)) {
+                        var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": false }, "id": 1 };
+                        doAction(params, kodi_api_url, callback, client);
+                    }
+                });
+            }    
         },
 
         mode_mediacenter: function () { mode_control_kodi(kodi_api_url, callback, client, "Mode multimédia activé. Que veux tu ?") }
@@ -128,16 +136,22 @@ var closekodi = { "jsonrpc": "2.0", "method": "Application.Quit", "id": "1" };
 
 
 /* START KODI APPLICATION */
-var start_kodi = function (client, config) {
-    var done;
-    Avatar.runApp(config.path_kodi, config.where_is_kodi);
-    done = true;
-    setTimeout(function () {
-        var tts = done ? "Le média-center est maintenant lancé." : "Je n'ai pas lancé le média-center." + client;
-        Avatar.speak(tts, client, function () {
-            Avatar.Speech.end(client);
-        });
-    }, 1500);
+var start_kodi = function (client, config, kodi_status) {
+    const execFile = require('child_process').execFile;
+
+    execFile(config.path_kodi, function (err, stdout, stderr) {
+                    if (err) {
+                        Avatar.speak("Je n'ai pas pu lancé le média-center, vérifier la configuration", client, function () {
+                            Avatar.Speech.end(client);
+                        });
+                        return;
+                    }
+    });
+    Avatar.speak("Le média-center à été lancé.", client, function () {
+        Avatar.Speech.end(client);
+        kodi_status.status = 'true';
+    });
+
 }
 
 

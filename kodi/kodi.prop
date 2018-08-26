@@ -11,13 +11,13 @@
       "speech": {
         "no_mute": [ "Android" ]
       },
-        "rules": {
-          "start_kodi": [ "(~start|~launch~) the? (kodi|cody)", "(~start|~launch~) the? media center", "(~start|~launch~) the? mediacenter" ],
-          "close_kodi": [ "(~stop~|~cut~|~stopped~|~shutdown~) the? media center", "(~stop~|~cut~|~stopped~|~shutdown~) * (kodi|cody)", "(~stop~|~cut~|~stopped~|~shutdown~) the? mediacenter" ],
-          "mode_mediacenter": [ "(activer|active|~activate~|~enable~|~start~|~launch~) * media mode", "(activer|active|~activate~|~enable~|~start~|~launch~) * multimedia mode" ],
-          "kodi_play": [ "~play~" ],
-          "kodi_pause": [ "~pause~" ]
-        }
+      "rules": {
+        "start_kodi": [ "(~start|~launch~) the? (kodi|cody)", "(~start|~launch~) the? media center", "(~start|~launch~) the? mediacenter" ],
+        "close_kodi": [ "(~stop~|~cut~|~stopped~|~shutdown~) the? media center", "(~stop~|~cut~|~stopped~|~shutdown~) * (kodi|cody)", "(~stop~|~cut~|~stopped~|~shutdown~) the? mediacenter" ],
+        "mode_mediacenter": [ "(activer|active|~activate~|~enable~|~start~|~launch~) * media mode", "(activer|active|~activate~|~enable~|~start~|~launch~) * multimedia mode" ],
+        "kodi_play": [ "~play~" ],
+        "kodi_pause": [ "~pause~" ]
+      }
     }
   }
 }
