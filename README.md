@@ -39,6 +39,6 @@ Version 1.30.0 (24-09-2018)
 
 [x] Ajout de lecture d'une série ( Prend en compte les épisodes déjà vus )
 [x] Correction recherche d'items
-[x] Ajout la possibilité de changer de viewmode (affichage en mode fanart - liste - miniatures).
+[x] Ajout la possibilité de changer de viewmode (affichage en mode fanart - liste - miniatures)
 [x] Ajout la fonction quitter le mode multimédia si vous lancé une commande du type play [ fichier prop = exit_multimedia_after_play": true ]
 [x] Ajout la fonction scroling avant et arrière ( permet de faire défiler les item automatiquement ) [ fichier prop = "speed_scrolling": "1500" ]
