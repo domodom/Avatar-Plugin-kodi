@@ -2,20 +2,39 @@
   "modules": {
     "kodi": {
       "description": "Commandes Vocales pour controler votre Média-Center Kodi",
-      "version": "1.2.3",
+      "version": "1.3.0",
       "path_kodi": "C://Program Files//Kodi//kodi.exe",
       "ip_kodi": "127.0.0.1",
       "port_kodi": "8585",
       "speed_scrolling": "1500",
       "exit_multimedia_after_play": false,
-      "speech": { "no_mute": [ "Android", "Chambre" ]},
+      "speech": { "no_mute": [ "Android", "Cuisine", "Chambre", "Salon" ]},
+      "favorite_radio": "RTL",
+
       "rules": {
         "start_kodi": [ "(~start|~launch~) the? (kodi|cody)", "(~start|~launch~) the? media center", "(~start|~launch~) the? mediacenter" ],
         "close_kodi": [ "(~stop~|~cut~|~stopped~|~shutdown~) the? media center", "(~stop~|~cut~|~stopped~|~shutdown~) * (kodi|cody)", "(~stop~|~cut~|~stopped~|~shutdown~) the? mediacenter" ],
-        "mode_mediacenter": [ "(activer|active|~activate~|~enable~|~start~|~launch~) * media mode", "(activer|active|~activate~|~enable~|~start~|~launch~) * multimedia mode" ],
-        "kodi_play": [ "play" ],
-        "kodi_pause": [ "pause" ]
+        "play_radio": [ "(~put~|~play~) the? radio", "listen to? the? radio" ],
+        "play_music": [ "(~put~|~play~) the? music .", "listen to? the? music"],
+		"stop_player" : [ "(~stop~|~stopped~) the? (radio|movie|music)" ],
+		"soundUp": ["get louder","up * (sound|volume) * kodi","(up|~mount~|~raise~|~increase~) * (sound|volume) * kodi"],
+        "soundDown": ["down [Determiner]? (sound|volume) * kodi","reduce [Determiner]? (sound|volume) * kodi","turn [Determiner]? [Determiner]? (sound|volume) * kodi","turn down [Determiner]? [Determiner]? (sound|volume) * kodi","lower [Determiner]? sound * kodi"],
+		"mute_unmute": [ "silence", "mute", "(stop|cut) the? (sound|volume)", "unmute", "(give) the? (sound|volume)", "put back? the? (sound|volume)" ],
+		"mode_mediacenter": [ "(activer|active|~activate~|~enable~|~start~|~launch~) * media mode", "(activer|active|~activate~|~enable~|~start~|~launch~) * multimedia mode" ],
+        "kodi_play": [ "kodi_play" ],
+        "kodi_pause": [ "kodi_pause" ]
       }
+    }
+  },
+  "cron": {
+        "kodi": {
+            "name": "wakeup",
+            "version": "1.3.0",
+            "description": "Permet de lancer une radio / artiste / album en tant que réveil.",
+            "enable": false,
+            "time": "15 7 * * *",
+            "type": "artiste",
+            "play_name": "LP"
     }
   }
 }

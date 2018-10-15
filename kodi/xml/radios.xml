@@ -2,8 +2,8 @@
 <radios>
   <radio name="Europe 1" id="2865"/>
   <radio name="France Culture" id="4233"/>
-  <radio name="Virgin radio" id="8275"/>
-  <radio name="Fun" id="4368"/>
+  <radio name="Virgin" id="8275"/>
+  <radio name="Fun Radio" id="4368"/>
   <radio name="RFM" id="2993"/>
   <radio name="Europe 1" id="2865"/>
   <radio name="RTL" id="5168"/>
@@ -14,7 +14,6 @@
   <radio name="Chérie FM" id="8315"/>
   <radio name="BFM" id="1441"/>
   <radio name="Skyrock" id="8302"/>
-  <radio name="FG" id="1577"/>
+  <radio name="Radio FG" id="1577"/>
   <radio name="radio Classique" id="1838"/>
-  <radio name="France Culture" id="4233"/>
 </radios>

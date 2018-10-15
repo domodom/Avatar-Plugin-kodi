@@ -13,16 +13,66 @@ kodi.status = { "status_video": {}, "status_music": {} };
 kodi.status.status_video = { 'kodi': false, 'player': 'stop', 'episode': -1, 'file': "", 'label': "", 'season': -1, 'showtitle': "", 'title': "", 'type': "" };
 kodi.status.status_music = { 'kodi': false, 'player': 'stop', 'artist': "", 'album': "", 'title': "", 'label': "", 'file': "" };
 
+var mode_control = true;
+
 exports.init = function () {
-    var config = Config.modules.kodi;
-    var kodi_api_url = 'http://' + config.ip_kodi + ':' + config.port_kodi + '/jsonrpc';
+    let config = Config.modules.kodi;
+    let kodi_api_url = 'http://' + config.ip_kodi + ':' + config.port_kodi + '/jsonrpc';
     status_kodi(kodi_api_url);
 }
+
+exports.cron = function (data, callback) {
+
+    let config = Config.modules.kodi;
+    let kodi_api_url = 'http://' + config.ip_kodi + ':' + config.port_kodi + '/jsonrpc';
+    let client = data.client;
+    status_kodi(kodi_api_url);
+
+    if (Config.cron.kodi.enable == true) {
+        if (kodi.status.status_music.kodi == false) start_kodi(client, config, kodi);
+        setTimeout(function () {
+            let type = Config.cron.kodi.type;
+            let value = Config.cron.kodi.play_name;
+
+            let filter = {"and": []};
+            if (type == 'artiste') {
+                filter.and.push({"field": "artist", "operator": "contains", "value": value});
+            }
+            doPlaylist(filter, kodi_api_url, callback, client);
+            if (type == 'radio')
+                req_radio(value, kodi_api_url, client);
+
+            if ((type == 'album') || (type == 'albums')) {
+                doAction(albums, kodi_api_url, callback, client, function (res) {
+                    for (let i = 0; i < res.result.albums.length; i++) {
+                        if (res.result.albums[i].label.toLowerCase() == value) {
+                            var label = res.result.albums[i].label;
+                            var album_id = res.result.albums[i].albumid;
+                        }
+                    }
+                    let read_album = {
+                        "jsonrpc": "2.0",
+                        "method": "Player.Open",
+                        "params": {"item": {"albumid": album_id}, "options": {"resume": false}},
+                        "id": 1
+                    };
+                    if (album_id) {
+                        doAction(read_album, kodi_api_url, callback, client);
+                    }
+                    else {
+                        Avatar.speak("Je n'ai pas trouvé l'album", client, function () {
+                        });
+                    }
+                });
+            }
+        }, 15000);
+    }
+};
 
 exports.action = function(data, callback) {
   var config = Config.modules.kodi;
   var kodi_api_url = 'http://' + config.ip_kodi + ':' + config.port_kodi + '/jsonrpc';
-  var client = setClient(data);
+  var client = data.client; // setClient(data);
 
   status_kodi(kodi_api_url);
 //  navig_info(kodi_api_url, callback, client);
@@ -42,15 +92,7 @@ exports.action = function(data, callback) {
       if (kodi.status.status_music.kodi == true) {
         doAction(status, kodi_api_url, callback, client, function(res) {
           if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1)) {
-            var params = {
-              "jsonrpc": "2.0",
-              "method": "Player.PlayPause",
-              "params": {
-                "playerid": res.result[0].playerid,
-                "play": true
-              },
-              "id": 1
-            };
+            let params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": true }, "id": 1 };
             doAction(params, kodi_api_url, callback, client);
           }
         });
@@ -58,25 +100,95 @@ exports.action = function(data, callback) {
     },
 
     kodi_pause: function() {
-      if (kodi.status.status_music.kodi == true) {
+      if (kodi.status.status_music.kodi === true) {
         doAction(status, kodi_api_url, callback, client, function(res) {
-          if ((res.result[0].playerid == 0) || (res.result[0].playerid == 1)) {
-            var params = {
-              "jsonrpc": "2.0",
-              "method": "Player.PlayPause",
-              "params": {
-                "playerid": res.result[0].playerid,
-                "play": false
-              },
-              "id": 1
-            };
+          if ((res.result[0].playerid === 0) || (res.result[0].playerid === 1)) {
+            var params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": res.result[0].playerid, "play": false }, "id": 1 };
             doAction(params, kodi_api_url, callback, client);
           }
         });
       }
     },
+      play_radio: function() {
+        mode_control = false;
+        Avatar.askme('Quelle radio veux tu écouter ? ', client, {
+            "*": "",
+            "favorite": "fav"
+        }, 0, function(answer, end) {
+            end(client);
+            let val_radio = answer.toLowerCase().replace(':', '').trim();
+                if ((!answer) || (answer.indexOf('fav') != -1)) { req_radio(Config.modules.kodi.favorite_radio, kodi_api_url, client); }
+                else req_radio(val_radio, kodi_api_url, client);
+        });
+    },
+      play_music: function () {
+          mode_control = false;
+          Avatar.askme('Que souhaites tu écouter ? ', client, {
+              "*": "",
+              "favorite": "fav"
+          }, 0, function(answer, end) {
+              end(client);
+              let value = answer.toLowerCase();
+              let filter = { "and": [] };
 
-    mode_mediacenter: function() {
+              if ((value.indexOf('artiste') != -1) || (value.indexOf('lartiste') != -1)) {
+                  value = answer.toLowerCase().supv().supm().supp();
+                  filter.and.push({ "field": "artist", "operator": "contains", "value": value });
+              }
+              else if (value.indexOf('titre') != -1) {
+                  value = answer.toLowerCase().supv().supm().supp();
+                  filter.and.push({ "field": "artist", "operator": "contains", "value": value });
+              }
+              else if ((value.indexOf('albums') != -1) || (value.indexOf('album') != -1)) {
+                  var reponse_album = answer.toLowerCase().supv().supm().supp();
+                  doAction(albums, kodi_api_url, callback, client, function (res) {
+                      for (let i = 0; i < res.result.albums.length; i++) {
+                          if (res.result.albums[i].label.toLowerCase() == reponse_album) {
+                              var label = res.result.albums[i].label;
+                              var albumid = res.result.albums[i].albumid;
+                          }
+                      }
+                      let readalbum = { "jsonrpc": "2.0", "method": "Player.Open", "params": { "item": { "albumid": albumid }, "options": { "resume": false } }, "id": 1 };
+                      if (albumid) {
+                          Avatar.speak('Je lance l\'album ' + label, client, function () {
+                              doAction(readalbum, kodi_api_url, callback, client);
+                          });
+                      }
+                      else {
+                          Avatar.speak("Je n'ai pas trouvé l'album", client, function () {
+                          });
+                      }
+                  });
+              }
+              doPlaylist(filter, kodi_api_url, callback, client);
+              Avatar.Speech.end(client);
+          });
+      },
+
+      stop_player: function () {
+        doAction(Stop, kodi_api_url);
+              Avatar.Speech.end(client);
+      },
+      soundUp: function () {
+        let repeter = 7;
+          for (let i = 0; i < repeter; i++) {
+              doAction(VolumeUp, kodi_api_url);
+          }
+        Avatar.Speech.end(client);
+      },
+      soundDown: function () {
+          let repeter = 7;
+          for (let i = 0; i < repeter; i++) {
+              doAction(VolumeDown, kodi_api_url);
+          }
+          Avatar.Speech.end(client);
+      },
+      mute_unmute : function () {
+        let params = { "jsonrpc": "2.0", "method": "Input.ExecuteAction", "params": { "action": "mute" }, "id": 1 };
+        doAction(params, kodi_api_url);
+            Avatar.Speech.end(client);
+    },
+      mode_mediacenter: function() {
       if ((kodi.status.status_music.kodi == true) || (kodi.status.status_video.kodi == true)) {
         navig_info(kodi_api_url, callback, client);
         mode_control_kodi(kodi, kodi_api_url, callback, client, "Mode multimédia activé. Que veux tu ?");
@@ -110,6 +222,7 @@ exports.action = function(data, callback) {
   callback();
 }
 
+
 // -------------------------------------------
 //  QUERIES KODI
 //  Doc: https://kodi.wiki/view/JSON-RPC_API/v9
@@ -129,6 +242,8 @@ var Left = { "jsonrpc": "2.0", "method": "Input.Left", "params": {}, "id": 1 }
 var Right = { "jsonrpc": "2.0", "method": "Input.Right", "params": {}, "id": 1 }
 var Down = { "jsonrpc": "2.0", "method": "Input.Down", "params": {}, "id": 1 }
 var Up = { "jsonrpc": "2.0", "method": "Input.Up", "params": {}, "id": 1 }
+var VolumeUp = { "jsonrpc": "2.0", "method": "Input.ExecuteAction", "params": { "action": "volumeup" }, "id": 1 }
+var VolumeDown = { "jsonrpc": "2.0", "method": "Input.ExecuteAction", "params": { "action": "volumedown" }, "id": 1 }
 var Home = { "jsonrpc": "2.0", "method": "Input.Home", "params": {}, "id": 1 }
 var Select = { "jsonrpc": "2.0", "method": "Input.Select", "params": {}, "id": 1 }
 var Back = { "jsonrpc": "2.0", "method": "Input.Back", "params": {}, "id": 1 }
@@ -148,12 +263,11 @@ var playlist = { "jsonrpc": "2.0", "method": "Playlist.GetItems", "params": { "p
 var clearlist = { "jsonrpc": "2.0", "id": 0, "method": "Playlist.Clear", "params": { "playlistid": 0 } }
 var addtolist = { "jsonrpc": "2.0", "id": 1, "method": "Playlist.Add", "params": { "playlistid": 0, "item": { "songid": 10 } } }
 var runlist = { "jsonrpc": "2.0", "id": 2, "method": "Player.Open", "params": { "item": { "playlistid": 0 } } }
-var shuffle_on = { "jsonrpc": "2.0", "method": "Player.SetShuffle", "params": { "playerid": 0, "shuffle": true }, "id": 1 }
-var shuffle_off = { "jsonrpc": "2.0", "method": "Player.SetShuffle", "params": { "playerid": 0, "shuffle": false }, "id": 1 }
 var getalbumsof = { "jsonrpc": "2.0", "method": "AudioLibrary.GetAlbums", "params": { "filter": { "operator": "is", "field": "artist", "value": "" } }, "id": 1 }
 var playlistmusic = { "jsonrpc": "2.0", "method": "Player.Open", "params": { "item": { "file": "" }, "options": { "shuffled": true } }, "id": 1 }
 var playlistvideo = { "jsonrpc": "2.0", "method": "GUI.ActivateWindow", "params": { "window": "video", "parameters": [] }, "id": 1 }
 var playserie = { "jsonrpc": "2.0", "method": "Player.Open", "params": { "item": { "file": "" }, "options": { "resume": true } }, "id": 3 }
+var films_recently = {"jsonrpc":"2.0","method":"GUI.ActivateWindow","params":{"window":"videos","parameters":["RecentlyAddedMovies"]},"id":1}
 var radio = '{"jsonrpc":"2.0","method":"Player.Open","params":{"item":{"file":"plugin://plugin.audio.radio_de/station/radioid"}},"id":1}'
 var unsetmovie = { "jsonrpc": "2.0", "method": "VideoLibrary.GetMovies", "params": { "filter": { "operator": "is", "field": "playcount", "value": "0" } }, "id": 1 }
 var setsubtitle = { "jsonrpc": "2.0", "id": 1, "method": "Player.SetSubtitle", "params": { "playerid": 1, "subtitle": "" } }
@@ -195,7 +309,7 @@ var status_kodi = function (kodi_api_url) {
     });
 
     // STATUS VIDEO
-    var rqjson = { "jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1 };
+    let rqjson = { "jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1 };
     sendJSONRequest(kodi_api_url, rqjson, function (result) {
         if (result.id == 1) {
             kodi.status.status_video.kodi = true;
@@ -212,7 +326,7 @@ var status_kodi = function (kodi_api_url) {
                             kodi.status.status_video.player = 'pause';
                         }
                     });
-                    var rqjson = { "jsonrpc": "2.0", "method": "Player.GetItem", "params": { "properties": ["title", "album", "artist", "season", "episode", "duration", "showtitle", "tvshowid", "file"], "playerid": 1 }, "id": "VideoGetItem" }
+                    let rqjson = { "jsonrpc": "2.0", "method": "Player.GetItem", "params": { "properties": ["title", "album", "artist", "season", "episode", "duration", "showtitle", "tvshowid", "file"], "playerid": 1 }, "id": "VideoGetItem" }
                     sendJSONRequest(kodi_api_url, rqjson, function (json) {
                         kodi.status.status_video = { 'kodi': true, 'player': "play", 'type': json.result.item.type, 'title': json.result.item.title, 'file': json.result.item.file, 'label': json.result.item.label, 'showtitle': json.result.item.showtitle, 'season': json.result.item.season, 'episode': json.result.item.episode };
                     });
@@ -297,14 +411,14 @@ var navig_info = function (kodi_api_url, callback, client) {
                         var item_id = [];
                         var index = 0;
                         var pos2point = 0;
-                        if (temp_item.contains("..") >= 0) {
-                            pos2point = temp_item_id[temp_item.contains("..")];
+                        if (temp_item.containers("..") >= 0) {
+                            pos2point = temp_item_id[temp_item.containers("..")];
                         }
                         for (i = 0; i < temp_item_id.length; i++) {
                             if ((pos2point + index) < temp_item_id.length) {
-                                item.push(temp_item[temp_item_id.contains(pos2point + index)]);
+                                item.push(temp_item[temp_item_id.containers(pos2point + index)]);
                             } else {
-                                item.push(temp_item[temp_item_id.contains(pos2point + index - temp_item_id.length)]);
+                                item.push(temp_item[temp_item_id.containers(pos2point + index - temp_item_id.length)]);
                             }
                             item_id.push(index);
                             index++;
@@ -403,18 +517,18 @@ var navigation_cherche_item = function (kodi_api_url, searchcontrol, callback, c
     var params = { "jsonrpc": "2.0", "method": "GUI.GetProperties", "params": { "properties": ["currentcontrol"] }, "id": 1 };
     doAction(params, kodi_api_url, callback, client, function (res) {
 
-        currentcontrol = res.result.currentcontrol.label.toLowerCase();
-        lenstr = res.result.currentcontrol.label.length - 1;
+         currentcontrol = res.result.currentcontrol.label.toLowerCase();
+         lenstr = res.result.currentcontrol.label.length - 1;
 
         if ((currentcontrol.indexOf("[") == 0) && (currentcontrol.lastIndexOf("]") == lenstr)) {
             currentcontrol = res.result.currentcontrol.label.slice(1, lenstr);
         }
 
-        if (kodi.container.items.contains(currentcontrol)!= -1) {
+        if (kodi.container.items.containers(currentcontrol)!= -1) {
 
             if (kodi.container.last_col == 1) {
-                positioncurrentcontrol = kodi.container.items_id[kodi.container.items.contains(currentcontrol)];
-                positionsearchcontrol = kodi.container.items_id[kodi.container.items.contains(searchcontrol)];
+                positioncurrentcontrol = kodi.container.items_id[kodi.container.items.containers(currentcontrol)];
+                positionsearchcontrol = kodi.container.items_id[kodi.container.items.containers(searchcontrol)];
                 diffposition = positionsearchcontrol - positioncurrentcontrol;
                 if (diffposition < 0) { diffposition += kodi.container.nb_items + 1 }
                 if (diffposition >= ((kodi.container.nb_items) / 2)) {
@@ -438,8 +552,8 @@ var navigation_cherche_item = function (kodi_api_url, searchcontrol, callback, c
             if (kodi.container.last_col > 1) {
                 nb_col = kodi.container.last_col;
 
-                positioncurrentcontrol = kodi.container.items_id[kodi.container.items.contains(currentcontrol)];
-                positionsearchcontrol = kodi.container.items_id[kodi.container.items.contains(searchcontrol)];
+                positioncurrentcontrol = kodi.container.items_id[kodi.container.items.containers(currentcontrol)];
+                positionsearchcontrol = kodi.container.items_id[kodi.container.items.containers(searchcontrol)];
 
                 move_to_col = (positionsearchcontrol % nb_col) - (positioncurrentcontrol % nb_col);
                 move_to_row = (Math.ceil((positionsearchcontrol + 1) / nb_col)) - (Math.ceil((positioncurrentcontrol + 1) / nb_col));
@@ -541,7 +655,6 @@ var doPlaylist = function (filter, kodi_api_url, callback, client) {
 var doPlaylistSerie = function (id, kodi_api_url, callback, client) {
     var asyncEpisode = function (l_episode, reponse) {
         if (l_episode) {
-
             if (l_episode.playcount == 0) { return reponse(l_episode); }
             return asyncEpisode(les_episodes.shift(), reponse);
         }
@@ -550,22 +663,21 @@ var doPlaylistSerie = function (id, kodi_api_url, callback, client) {
     var syncSaison = function (la_saison, reponse) {
         if (la_saison) {
             episode.params.season = parseInt(la_saison.season);
-
             sendJSONRequest(kodi_api_url, episode, function (res) {
-                les_episodes = res.result.episodes
+                les_episodes = res.result.episodes;
                 asyncEpisode(les_episodes.shift(), function (reponse_episode) {
                     if (reponse_episode == false) { return syncSaison(les_saisons.shift(), reponse); }
                     else { return reponse(reponse_episode); }
                 });
             });
         }
-        else { return reponse(false); }
+        else { returnreponse(false); }
     }
     saison.params.tvshowid = parseInt(id);
     episode.params.tvshowid = parseInt(id);
 
-    sendJSONRequest(kodi_api_url, saison,  function (res) {
-        les_saisons = res.result.seasons;
+    sendJSONRequest(kodi_api_url, saison, function (res) {
+         les_saisons = res.result.seasons;
         syncSaison(les_saisons.shift(), function (reponse) {
             if (reponse == false) {
                 Avatar.speak('Tous les épisodes ont été vu !', client, function () {
@@ -583,7 +695,6 @@ var doPlaylistSerie = function (id, kodi_api_url, callback, client) {
                 });
             }
         });
-
     });
 }
 
@@ -595,17 +706,22 @@ var req_radio = function (radio, kodi_api_url, client) {
 
     fs.readFile(__dirname + '/xml/radios.xml', 'utf-8', function (err, data) {
         parser.parseString(data, function (err, result) {
-            var noeudradio = result.radios.radio;
-
-            for (var i = 0; i < noeudradio.length; i++) {
-                var name, radioid;
+            let noeudradio = result.radios.radio;
+            let name, radioid = -1 ;
+            for (let i = 0; i < noeudradio.length; i++) {
                 if (radio.toLowerCase() == noeudradio[i].$.name.toLowerCase()) {
                     name = noeudradio[i].$.name;
                     radioid = noeudradio[i].$.id;
                 }
             }
-            if (name) doRadio(radioid, name, kodi_api_url, client);
-            else mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
+            if (radioid > -1) doRadio(radioid, name, kodi_api_url, client);
+            else {
+                Avatar.speak("Je n'ai pas trouvé la radio, je met la radio favorite.", client, function () {
+                    Avatar.Speech.end(client);
+                    return req_radio (Config.modules.kodi.favorite_radio, kodi_api_url, client);
+                });
+            }
+            if ((Config.modules.kodi.exit_multimedia_after_play == false) && (mode_control == true)) mode_control_kodi(kodi, kodi_api_url, '', client, ' ');
         });
     });
 }
@@ -615,14 +731,14 @@ var doRadio = function (radioid, name, kodi_api_url, client) {
     xml.params.item.file = xml.params.item.file.replace(/radioid/, radioid);
     sendJSONRequest(kodi_api_url, xml, function (res) {
         if (res === false)
-            Avatar.speak("Je n'ai pas réussi à mettre la radio !", client, function () {
+            Avatar.speak("Je ne peux pas mettre cette radio !", client, function () {
             Avatar.Speech.end(client);
-            mode_control_kodi('', kodi_api_url, '', client, ' ');
+                if ((Config.modules.kodi.exit_multimedia_after_play == false) && (mode_control == true)) mode_control_kodi(kodi, kodi_api_url, '', client, ' ');
         });
         else {
             Avatar.speak("Tu écoutes maintenant la radio " + name, client, function () {
                 Avatar.Speech.end(client);
-                if (Config.modules.kodi.exit_multimedia_after_play == false) mode_control_kodi(kodi, kodi_api_url, '', client, ' ');
+                if ((Config.modules.kodi.exit_multimedia_after_play == false) && (mode_control == true)) mode_control_kodi(kodi, kodi_api_url, '', client, ' ');
             });
         }
     });
@@ -665,8 +781,8 @@ var doScrolling = function (sens, kodi_api_url, callback, client) {
         if ((currentcontrol.indexOf("[") == 0) && (currentcontrol.lastIndexOf("]") == lenstr)) {
             currentcontrol = res.result.currentcontrol.label.slice(1, lenstr);
         }
-        if (kodi.container.items.contains(currentcontrol) != -1) {
-            let position_currentcontrol = kodi.container.items_id[kodi.container.items.contains(currentcontrol)];
+        if (kodi.container.items.containers(currentcontrol) != -1) {
+            let position_currentcontrol = kodi.container.items_id[kodi.container.items.containers(currentcontrol)];
             let max = Math.ceil((kodi.container.nb_items + 1) / kodi.container.last_col);
             doScroll(max, kodi_api_url, sens, function () {
                 callback();
@@ -718,6 +834,7 @@ var setClient = function (data) {
 /* MODE MULTIMEDIA - CONTROL KODI BY ASKME */
 
 var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
+
     navig_info(kodi_api_url, callback, client);
 
     Avatar.askme(tts, client,
@@ -829,7 +946,7 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
 
             /* COMMANDES (AFFICHE LECTEUR-PLAY-PAUSE-STOP-NEXT-PRECEDENT-AVANCE-RECUL) */
 
-            else if ((answer.indexOf('affiche') != -1) && (answer.indexOf('lecteur') != -1) || (answer.indexOf('player') != -1)) {
+            else if ((answer.indexOf('affiche') != -1) || (answer.indexOf('masque') != -1) && (answer.indexOf('lecteur') != -1) || (answer.indexOf('player') != -1)) {
                 doAction(ShowOSD, kodi_api_url);
                 mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
             }
@@ -839,9 +956,17 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                 if (Config.modules.kodi.exit_multimedia_after_play == false) mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
             }
             else if (answer.indexOf("pause") != -1) {
-                doAction(Pause, kodi_api_url);
+              if (kodi.status_kodi.status_music.kodi == true) {
+                params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": 0, "play": false }, "id": 1 };
+                doAction(params, kodi_api_url);
+                mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
+              }
+              if (kodi.status_kodi.status_video.kodi == true) {
+                params = { "jsonrpc": "2.0", "method": "Player.PlayPause", "params": { "playerid": 1, "play": false }, "id": 1 };
+                doAction(params, kodi_api_url);
                 mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
             }
+          }
             else if ((answer.indexOf("stop") != -1) || (answer.indexOf("arrête") != -1) || (answer.indexOf("arrêtes") != -1)) {
                 doAction(Stop, kodi_api_url);
                 mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
@@ -893,6 +1018,14 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                 }
             }
 
+            /* EXECUTER ADDON */
+
+            else if ((answer.indexOf('freeplay') != -1) || (answer.indexOf('free play') != -1)) {
+              let addon = "plugin.video.freplay" ;
+              let param = { "jsonrpc": "2.0", "method": "Addons.ExecuteAddon", "params": { "wait": false, "addonid": addon, "params": ["null"]}, "id":0};
+                doAction(param, kodi_api_url);
+            }
+
             /* REGLAGE DU SON */
 
             else if (((answer.indexOf("coupes") != -1) || (answer.indexOf("désactives") != -1) || (answer.indexOf("coupe") != -1) || (answer.indexOf("désactive") != -1)) && ((answer.indexOf("volume") != -1) || (answer.indexOf("son") != -1))) {
@@ -917,14 +1050,14 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
             /* JOUE LA RADIO */
 
             else if (answer.indexOf('radio') != -1) {
-                val_radio = answer.supv().supm().supp().toLowerCase();
+                val_radio = answer.toLowerCase().supv().supm().supp();
                 req_radio(val_radio, kodi_api_url, client);
             }
 
             /* LECTURE DE LA MUSIQUE SELON (ARTISTE-TITRE-GENRE - ALBUM) */
 
             else if (answer.indexOf("artiste") != -1) {
-                var artist = answer.supv().supm().supp().toLowerCase();
+                var artist = answer.toLowerCase().supv().supm().supp();
                 var filter = { "and": [] };
 
                 if (artist) {
@@ -935,7 +1068,7 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
             }
 
             else if (answer.indexOf("titre") != -1) {
-                var title = answer.supv().supm().supp().toLowerCase();
+                var title = answer.toLowerCase().supv().supm().supp();
                 var filter = { "and": [] };
                 if (title) {
                     filter.and.push({ "field": "title", "operator": "contains", "value": title });
@@ -944,7 +1077,7 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                 if (Config.modules.kodi.exit_multimedia_after_play == false) mode_control_kodi(kodi, kodi_api_url, '', client, ' ');
             }
             else if (answer.indexOf("genre") != -1) {
-                var genre = answer.supv().supm().supp().toLowerCase();
+                var genre = answer.toLowerCase().supv().supm().supp();
                 var filter = { "and": [] };
 
                 if (genre) {
@@ -954,7 +1087,7 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                 if (Config.modules.kodi.exit_multimedia_after_play == false) mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
             }
             else if ((answer.indexOf('albums') != -1) || (answer.indexOf('album') != -1)) {
-                    var reponse_album = answer.supv().supm().supp().toLowerCase();
+                    var reponse_album = answer.toLowerCase().supv().supm().supp();
                     reponse_album.replace("écouter","");
                 doAction(albums, kodi_api_url, callback, client, function (res) {
                     for (var i = 0; i < res.result.albums.length; i++) {
@@ -984,16 +1117,17 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
 
             else if ((answer.indexOf('regarder') != -1) || (answer.indexOf('voir') != -1)) {
                 if (answer.indexOf("série") != -1) {
-                    var ask_serie = answer.supv().supm().supp().toLowerCase();
+                    var ask_serie = answer.toLowerCase().supv().supm().supp();
                     doAction(json_serie, kodi_api_url, callback, client, function (res) {
+                        let tvshowid = -1;
                         for (var i = 0; i < res.result.tvshows.length; i++) {
-                            if (res.result.tvshows[i].label.toLowerCase() == ask_serie.toLowerCase()) {
+
+                            if (res.result.tvshows[i].label.toLowerCase() == ask_serie) {
                                 label = res.result.tvshows[i].label;
                                 tvshowid = res.result.tvshows[i].tvshowid;
                             }
                         }
-
-                        if (tvshowid) {
+                        if (tvshowid > -1) {
                             doPlaylistSerie(tvshowid, kodi_api_url, callback, client);
                             if (Config.modules.kodi.exit_multimedia_after_play == false) mode_control_kodi(' ', kodi_api_url, '', client, ' ');
                         }
@@ -1007,7 +1141,7 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                 }
 
                 if (answer.indexOf("film") != -1) {
-                    var valfilm = answer.supv().supm().supp().toLowerCase();
+                    var valfilm = answer.toLowerCase().supv().supm().supp();
                     doAction(json_film, kodi_api_url, callback, client, function (res) {
                         for (var i = 0; i < res.result.movies.length; i++) {
                             if (res.result.movies[i].label.toLowerCase() == valfilm.toLowerCase()) {
@@ -1035,10 +1169,10 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                 }
             }
 
-            /* FILMS A VOIR */
+            /* FILMS A VOIR ET AJOUTE RECEMMENT */
 
-            else if ((answer.indexOf('liste') != -1) && (answer.indexOf('non vu') != -1)) {
-
+            else if ((answer.indexOf('liste') != -1) && (answer.indexOf('film') != -1)) {
+                    if (answer.indexOf('non vu') != -1) {
                 doAction(unsetmovie, kodi_api_url, callback, client, function (res) {
                     var moviestosee = "";
                     if (res.result.limits.total == 0) {
@@ -1058,12 +1192,23 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
                         });
                     }
                 });
+              }
+              if (answer.indexOf('dernier ajouté') != -1) {
+                  doAction(films_recently,kodi_api_url);
+                  mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
+              }
+              else {
+                  Avatar.speak("Je n'ai pas trouvé ce que tu recherches !", client, function () {
+                      Avatar.Speech.end(client);
+                      mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
+                  });
+              }
             }
 
             /* RECHERCHE ITEM */
 
             else if ((answer.indexOf('affiche') != -1) || (answer.indexOf('recherches') != -1) || (answer.indexOf('recherche') != -1)) {
-                var choice = answer.rechercher().toLowerCase();
+                var choice = answer.toLowerCase().rechercher();
                 if (choice) {
                     navigation_cherche_item(kodi_api_url, choice, callback, client);
                     mode_control_kodi(kodi, kodi_api_url, callback, client, ' ');
@@ -1080,7 +1225,7 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
 
             else if ((answer.indexOf("affichage") != -1) || (answer.indexOf("viewmode") != -1)) {
               navig_info(kodi_api_url, callback, client);
-              var type_affichage = answer.view().toLowerCase();
+              var type_affichage = answer.toLowerCase().view();
               if (type_affichage == "fan art") type_affichage = "fanart"; if (type_affichage == "miniature") type_affichage = "miniatures";
 
               var index=0;
@@ -1198,10 +1343,10 @@ var mode_control_kodi = function (kodi, kodi_api_url, callback, client, tts) {
 }
 
 String.prototype.supv = function () {
-    var TERM = [ "écouter", "joues", "joue", "jouer", "lances", "lance", "mets", "met", "rechercher", "recherche", "regarder", "regardes", "regarde", "veux", "souhaites", "souhaite", "affiches", "affiche", "lis" ];
-    var str = this;
-    for (var i = 0; i < TERM.length; i++) {
-        var reg= new RegExp(TERM[i], "gi");
+    let TERM = [ "écouter", "joues", "joue", "jouer", "lances", "lance", "mets", "met", "rechercher", "recherche", "regarder", "regardes", "regarde", "veux", "souhaites", "souhaite", "affiches", "affiche", "lis" ];
+    let str = this;
+    for (let i = 0; i < TERM.length; i++) {
+         let reg= new RegExp(TERM[i], "gi");
         //var reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
         str = str.replace(reg, "").replace(':', '').trim();
     }
@@ -1209,46 +1354,46 @@ String.prototype.supv = function () {
 };
 
 String.prototype.supm = function () {
-    var TERM = [ "artistes", "lartiste", "artiste", "titres", "titre", "musiques", "musique", "films", "film", "l'album", "albums", "album", "genres", "genre", "singles", "single", "radios", "radio", "séries", "série", "tv", "playlist" ];
-    var str = this;
-    for (var i = 0; i < TERM.length; i++) {
-        var reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
+    let TERM = [ "artistes", "lartiste", "artiste", "titres", "titre", "musiques", "musique", "films", "film", "l'album", "albums", "album", "genres", "genre", "singles", "single", "radios", "radio", "séries", "série", "tv", "playlist" ];
+    let str = this;
+    for (let i = 0; i < TERM.length; i++) {
+         let reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
         str = str.replace(reg, "").replace(':', '').trim();
     }
     return str;
 };
 
 String.prototype.supp = function () {
-    var TERM = ["de", "du", "la", "les", "l\"", "le", "je", "moi"];
-    var str = this;
-    for (var i = 0; i < TERM.length; i++) {
-        var reg= new RegExp(TERM[i] + " ", "ig");
+    let TERM = ["de", "du", "la", "les", "l\"", "le", "je", "moi"];
+    let str = this;
+    for (let i = 0; i < TERM.length; i++) {
+         let reg= new RegExp(TERM[i] + " ", "gi");
         str = str.replace(reg, "").replace(':', '').trim();
     }
     return str;
 };
 
 String.prototype.rechercher = function () {
-    var TERM = ['affiches', 'affiche', 'recherches', 'recherche'];
-    var str = this;
-    for (var i = 0; i < TERM.length; i++) {
-        var reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
-        str = str.replace(reg, "").replace(':', '').trim();
+    let TERM = ['affiches', 'affiche', 'recherches', 'recherche'];
+    let str = this;
+    for (let i = 0; i < TERM.length; i++) {
+         let reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
+         str = str.replace(reg, "").replace(':', '').trim();
     }
     return str;
 };
 
 String.prototype.view = function () {
-    var TERM = ['affichage', 'en', 'mode', 'viewmode'];
-    var str = this;
-    for (var i = 0; i < TERM.length; i++) {
-        var reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
+    let TERM = ['affichage', 'en', 'mode', 'viewmode'];
+    let str = this;
+    for (let i = 0; i < TERM.length; i++) {
+         let reg = new RegExp('\\b' + TERM[i] + '\\b\\s?');
         str = str.replace(reg, "").replace(':', '').trim();
     }
     return str;
 };
 
-Array.prototype.contains = function (obj) {
+Array.prototype.containers = function (obj) {
     var i = this.length;
     while (i--) { if (this[i] == obj) { return (i); } }
     return -1;

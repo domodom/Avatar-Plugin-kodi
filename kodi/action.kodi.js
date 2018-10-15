@@ -10,13 +10,13 @@ var _ = require('underscore');
 exports.default = function (state) {
     return new Promise(function (resolve, reject) {
 
-        //info('***** NLP Relations ****'.yellow);
-        //info('state.tokens:', state.tokens);
+       // info('***** NLP Relations ****'.yellow);
+       // info('state.tokens:', state.tokens);
         //info('state.tags:', state.tags);
-        //for (var a in state.relations) {
-        //    info('Relations', a, ":", state.relations[a])
-        //}
-        //info('********** END *********'.yellow);  
+        // for (var a in state.relations) {
+        //     info('Relations', a, ":", state.relations[a])
+        // }
+       // info('********** END *********'.yellow);
 
         /* pour la pièce en multiroom */
         var room = Avatar.ia.clientFromRule(state.rawSentence);
