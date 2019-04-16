@@ -1,0 +1,3 @@
+Controlez votre MédiaCenter Kodi !
+
+- Permet de contrôler vos playlists musical, films, séries, etc ...
