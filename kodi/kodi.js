@@ -160,6 +160,10 @@ exports.action = function(data, callback) {
                       }
                   });
               }
+              else {
+                value = answer.toLowerCase().supv().supm().supp();
+                filter.and.push({ "field": "artist", "operator": "contains", "value": value });
+              }
               doPlaylist(filter, kodi_api_url, callback, client);
               Avatar.Speech.end(client);
           });
@@ -214,7 +218,27 @@ exports.action = function(data, callback) {
           }
         });
       }
-    }
+    },
+    pblv : function () {
+      let params = { "jsonrpc": "2.0", "method": "Addons.ExecuteAddon", "params": { "wait": true, "addonid": "plugin.video.freplay", "params": {"param":"11","mode":"shows","channel":"france3"}}, "id":1};
+      doAction(params, kodi_api_url);
+      Avatar.speak("Je lance le dernier épisode trouvé !", client, function() {
+          Avatar.Speech.end(client);
+        });
+        setTimeout(function () {
+          params = { "jsonrpc": "2.0", "method": "Input.ExecuteAction", "params": {"action": "firstpage"}, "id": 1 };
+              doAction(params,  kodi_api_url);
+        }, 2000);
+
+        setTimeout(function () {
+              doAction(Down,  kodi_api_url);
+        }, 2000);
+        setTimeout(function () {
+              doAction(Select, kodi_api_url);
+        }, 2000);
+
+
+  }
   }
 
   info("kodi command:", data.action.command.yellow, "From:", data.client.yellow, "To:", client.yellow);
@@ -309,7 +333,7 @@ var status_kodi = function (kodi_api_url) {
     });
 
     // STATUS VIDEO
-    let rqjson = { "jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1 };
+   var rqjson = { "jsonrpc": "2.0", "method": "Player.GetActivePlayers", "id": 1 };
     sendJSONRequest(kodi_api_url, rqjson, function (result) {
         if (result.id == 1) {
             kodi.status.status_video.kodi = true;
@@ -326,7 +350,7 @@ var status_kodi = function (kodi_api_url) {
                             kodi.status.status_video.player = 'pause';
                         }
                     });
-                    let rqjson = { "jsonrpc": "2.0", "method": "Player.GetItem", "params": { "properties": ["title", "album", "artist", "season", "episode", "duration", "showtitle", "tvshowid", "file"], "playerid": 1 }, "id": "VideoGetItem" }
+                    var rqjson = { "jsonrpc": "2.0", "method": "Player.GetItem", "params": { "properties": ["title", "album", "artist", "season", "episode", "duration", "showtitle", "tvshowid", "file"], "playerid": 1 }, "id": "VideoGetItem" }
                     sendJSONRequest(kodi_api_url, rqjson, function (json) {
                         kodi.status.status_video = { 'kodi': true, 'player': "play", 'type': json.result.item.type, 'title': json.result.item.title, 'file': json.result.item.file, 'label': json.result.item.label, 'showtitle': json.result.item.showtitle, 'season': json.result.item.season, 'episode': json.result.item.episode };
                     });
